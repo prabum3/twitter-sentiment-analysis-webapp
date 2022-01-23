@@ -1,0 +1,55 @@
+name: "Build and deploy app on azure"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: use node.js v14
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login into container registry
+        run: |
+          az acr login --name prabum3.azurecr.io
+
+      - name: Build React App
+        run: |
+          cd ./client
+          npm install
+          npm run build
+
+      - name: Build and push docker image (nginx-reverse-proxy)
+        run: |
+          cd ./nginx/production
+          IMAGE_NAME=prabum3.azurecr.io/twitter-sentiment-app-nginx-react-image:latest
+          echo "building image $IMAGE_NAME"
+          docker image build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      - name: Build and push docker image (fastapi)
+        run: |
+          cd ./server
+          IMAGE_NAME=prabum3.azurecr.io/twitter-sentiment-app-fastapi-image:latest
+          echo "building image $IMAGE_NAME"
+          docker image build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      - name: Deploy with docker-compose
+        run: |
+          az webapp config container set --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} --name sentiment-analysis-webapp  --multicontainer-config-type compose --multicontainer-config-file docker-compose.yml
+
+

@@ -1,0 +1,16 @@
+version: '3.7'
+services:
+  nginx-reverse-proxy:
+    image: prabum3.azurecr.io/twitter-sentiment-app-nginx-react-image:latest
+    ports:
+      - 80:80
+    depends_on:
+      - "backend"
+
+  backend:
+    image: prabum3.azurecr.io/twitter-sentiment-app-fastapi-image:latest
+    volumes:
+      - dl-model:/app/server/cloudshare
+    expose:
+     - "8000"
+

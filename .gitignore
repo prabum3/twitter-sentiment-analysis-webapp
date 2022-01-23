@@ -1,0 +1,4 @@
+/server/artifacts
+/nginx/production/build
+.env
+/*/*/__pycache__/*
